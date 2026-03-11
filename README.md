@@ -2,6 +2,9 @@
 
 A DeepInfra-style SaaS platform for AI agent access to LLM inference, built locally on this VM.
 
+**Repository:** `https://github.com/PulseCortex/pulsecortex-platform`
+**Deployment:** Automated CI/CD to this server
+
 ## Core Features (MVP)
 
 ### 1. **Account Management**

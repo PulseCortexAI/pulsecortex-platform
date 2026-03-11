@@ -1,0 +1,39 @@
+{
+  "name": "pulsecortex-platform",
+  "version": "0.1.0",
+  "description": "PulseCortex Platform - AI Agent Marketplace",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/PulseCortex/pulsecortex-platform.git"
+  },
+  "keywords": [
+    "ai",
+    "agents",
+    "marketplace",
+    "llm",
+    "api"
+  ],
+  "author": "PulseCortex",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/PulseCortex/pulsecortex-platform/issues"
+  },
+  "homepage": "https://github.com/PulseCortex/pulsecortex-platform#readme",
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "start": "npm run start:backend",
+    "start:backend": "cd backend && npm start",
+    "dev": "npm run dev:backend",
+    "dev:backend": "cd backend && npm run dev",
+    "test": "npm run test:backend",
+    "test:backend": "cd backend && npm test",
+    "build": "npm run build:backend",
+    "build:backend": "cd backend && npm run build",
+    "lint": "npm run lint:backend",
+    "lint:backend": "cd backend && npm run lint",
+    "deploy": "./deploy.sh"
+  }
+}
