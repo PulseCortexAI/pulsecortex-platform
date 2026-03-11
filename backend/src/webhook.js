@@ -11,7 +11,7 @@ const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || crypto.randomBytes(32).toSt
 
 function verifySignature(req, res, next) {
   const signature = req.headers['x-hub-signature-256'];
-  const payload = JSON.stringify(req.body);
+  const payload = req.rawBody || JSON.stringify(req.body);
   
   if (!signature) {
     console.log('Webhook: Missing signature');
@@ -68,7 +68,8 @@ router.post('/webhook', verifySignature, (req, res) => {
   });
   
   // Execute deployment in background
-  exec(`cd ${path.dirname(deployScript)} && bash deploy.sh > ${logFile} 2>&1`, (error, stdout, stderr) => {
+  const command = `cd /home/vm1/.openclaw/workspace/platform && git pull && bash deploy.sh > ${logFile} 2>&1`;
+  exec(command, (error, stdout, stderr) => {
     if (error) {
       console.error(`Deployment failed: ${error.message}`);
       // Could notify via Slack/email here
