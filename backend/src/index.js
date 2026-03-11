@@ -35,6 +35,13 @@ app.use(limiter);
 // Mount Routes
 app.use('/api/auth', authRoutes);
 
+// Webhook routes (if enabled)
+if (process.env.ENABLE_WEBHOOK === 'true') {
+  const webhookRoutes = require('./webhook');
+  app.use('/api/deploy', webhookRoutes);
+  console.log('Webhook deployment endpoint enabled');
+}
+
 // Base Routes
 app.get('/', (req, res) => {
   res.json({

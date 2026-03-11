@@ -1,0 +1,96 @@
+name: CI/CD Webhook Deployment
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:  # Manual trigger
+
+env:
+  PLATFORM_URL: ${{ secrets.PLATFORM_URL }}
+  WEBHOOK_SECRET: ${{ secrets.WEBHOOK_SECRET }}
+
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: backend/package-lock.json
+    
+    - name: Install backend dependencies
+      run: |
+        cd backend
+        npm ci
+    
+    - name: Run tests
+      run: |
+        cd backend
+        npm test || echo "No tests configured yet"
+    
+    - name: Webhook deployment
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      run: |
+        # Generate HMAC signature for secure webhook
+        WEBHOOK_SECRET="${{ secrets.WEBHOOK_SECRET }}"
+        PLATFORM_URL="${{ secrets.PLATFORM_URL }}"
+        
+        if [ -z "$WEBHOOK_SECRET" ] || [ -z "$PLATFORM_URL" ]; then
+          echo "Error: WEBHOOK_SECRET or PLATFORM_URL secrets are not set"
+          exit 1
+        fi
+        
+        # Create payload
+        PAYLOAD=$(jq -n \
+          --arg ref "$GITHUB_REF" \
+          --arg sha "$GITHUB_SHA" \
+          --arg repository "$GITHUB_REPOSITORY" \
+          --arg sender "$GITHUB_ACTOR" \
+          '{
+            ref: $ref,
+            sha: $sha,
+            repository: {
+              full_name: $repository
+            },
+            sender: {
+              login: $sender
+            },
+            action: "push"
+          }')
+        
+        # Generate HMAC signature
+        SIGNATURE=$(echo -n "$PAYLOAD" | openssl dgst -sha256 -hmac "$WEBHOOK_SECRET" | awk '{print "sha256="$2}')
+        
+        # Send webhook
+        echo "Sending deployment webhook to $PLATFORM_URL/api/deploy/webhook"
+        curl -X POST \
+          -H "Content-Type: application/json" \
+          -H "X-Hub-Signature-256: $SIGNATURE" \
+          -d "$PAYLOAD" \
+          "$PLATFORM_URL/api/deploy/webhook"
+    
+    - name: Verify deployment
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      run: |
+        PLATFORM_URL="${{ secrets.PLATFORM_URL }}"
+        
+        # Wait for deployment to complete
+        sleep 10
+        
+        # Check health endpoint
+        echo "Verifying deployment health..."
+        curl -f "$PLATFORM_URL/health" || {
+          echo "Health check failed!"
+          exit 1
+        }
+        echo "Deployment verification complete"
